@@ -58,7 +58,7 @@ impl<'js> Ctx<'js> {
     /// Evaluate a script in global context
     pub fn eval<V: FromJs<'js>, S: Into<Vec<u8>>>(self, source: S) -> Result<V> {
         let file_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"eval_script\0") };
-        let flag = qjs::JS_EVAL_TYPE_GLOBAL | qjs::JS_EVAL_FLAG_STRICT;
+        let flag = qjs::JS_EVAL_TYPE_MODULE;
         V::from_js(self, unsafe {
             let val = self.eval_raw(source, file_name, flag as i32)?;
             Value::from_js_value(self, val)
@@ -75,7 +75,7 @@ impl<'js> Ctx<'js> {
                 .to_string_lossy()
                 .into_owned(),
         )?;
-        let flag = qjs::JS_EVAL_TYPE_GLOBAL | qjs::JS_EVAL_FLAG_STRICT;
+        let flag = qjs::JS_EVAL_TYPE_MODULE;
         V::from_js(self, unsafe {
             let val = self.eval_raw(buffer, file_name.as_c_str(), flag as i32)?;
             Value::from_js_value(self, val)
