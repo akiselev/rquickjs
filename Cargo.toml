@@ -48,15 +48,6 @@ package = "either"
 version = "^1"
 optional = true
 
-[workspace]
-members = [
-    "rquickjs-sys",
-    "rquickjs-core",
-    "rquickjs-macro",
-    "examples/native-module",
-    "examples/module-loader",
-]
-
 [features]
 default = ["exports", "classes", "properties"]
 

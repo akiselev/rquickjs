@@ -93,7 +93,7 @@ impl<'js> Ctx<'js> {
         let file_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"eval_script\0") };
         let flag = qjs::JS_EVAL_TYPE_MODULE;
         V::from_js(self, unsafe {
-            let val = self.eval_this_raw(source, file_name, flag as i32)?;
+            let val = self.eval_raw(source, file_name, flag as i32)?;
             Value::from_js_value(self, val)
         })
     }
@@ -127,7 +127,7 @@ impl<'js> Ctx<'js> {
         )?;
         let flag = qjs::JS_EVAL_TYPE_GLOBAL;
         V::from_js(self, unsafe {
-            let val = self.eval_this_raw(buffer, file_name.as_c_str(), flag as i32)?;
+            let val = self.eval_raw(buffer, file_name.as_c_str(), flag as i32)?;
             Value::from_js_value(self, val)
         })
     }
@@ -191,7 +191,7 @@ impl<'js> Ctx<'js> {
     /// Store a value in the typedmap using a key
     #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
     pub fn insert_typed<K: 'static + TypedMapKey>(
-        &mut self,
+        &self,
         key: K,
         value: K::Value,
     ) -> Option<K::Value> {
@@ -218,7 +218,7 @@ impl<'js> Ctx<'js> {
 
     /// Get a value from the typedmap using a key
     #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
-    pub fn remove_typed<K: 'static + TypedMapKey>(&mut self, key: &K) -> Option<K::Value> {
+    pub fn remove_typed<K: 'static + TypedMapKey>(&self, key: &K) -> Option<K::Value> {
         let opaque = unsafe { self.get_opaque() };
         opaque.map.remove(key)
     }

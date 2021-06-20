@@ -27,6 +27,9 @@ pub mod phf {
     pub use phf::*;
 }
 
+#[cfg(feature = "typedmap")]
+pub use typedmap::TypedMapKey;
+
 mod markers;
 pub use markers::ParallelSend;
 mod result;
