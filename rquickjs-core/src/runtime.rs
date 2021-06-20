@@ -41,6 +41,10 @@ pub struct Opaque {
     /// Used to ref Runtime from Ctx
     pub runtime: WeakRuntime,
 
+    #[cfg(feature = "typedmap")]
+    /// Typedmap for storing arbitrary types
+    pub map: typedmap::TypedMap,
+
     #[cfg(feature = "registery")]
     /// The registery, used to keep track of which registery values belong to this runtime.
     pub registery: HashSet<RegisteryKey>,
@@ -55,6 +59,8 @@ impl Opaque {
         Opaque {
             panic: None,
             runtime: runtime.weak(),
+            #[cfg(feature = "typedmap")]
+            map: typedmap::TypedMap::default(),
             #[cfg(feature = "registery")]
             registery: HashSet::default(),
             #[cfg(feature = "futures")]
