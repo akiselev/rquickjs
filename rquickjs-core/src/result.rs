@@ -71,6 +71,21 @@ pub enum Error {
 }
 
 impl Error {
+    /// Create new exception
+    pub fn new<'js, S>(ctx: Ctx<'js>, msg: S) -> Self
+    where
+        StdString: From<S>,
+    {
+        unsafe {
+            let val = qjs::JS_NewError(ctx.ctx);
+            let val = Value::from_js_value(ctx, val);
+            let obj = val.as_object().unwrap();
+            let msg: String = msg.into();
+            obj.set("message", msg).unwrap();
+            Error::from_js(ctx, val).unwrap()
+        }
+    }
+
     #[cfg(feature = "loader")]
     /// Create resolving error
     pub fn new_resolving<B, N>(base: B, name: N) -> Self
@@ -135,7 +150,7 @@ impl Error {
 
     /// Returns whether the error is a quickjs generated exception.
     pub fn is_exception(&self) -> bool {
-        matches!(self, Error::Exception{..})
+        matches!(self, Error::Exception { .. })
     }
 
     /// Create from JS conversion error
