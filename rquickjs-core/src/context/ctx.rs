@@ -69,7 +69,7 @@ impl<'js> Ctx<'js> {
         let src = CString::new(src)?;
         let val = qjs::JS_EvalThis(
             self.ctx,
-            self.globals().as_js_value(),
+            (*self.globals()).clone().into_js_value(),
             src.as_ptr(),
             len as _,
             file_name.as_ptr(),
@@ -116,18 +116,51 @@ impl<'js> Ctx<'js> {
     }
 
     /// Evaluate a script directly from a file.
-    pub fn eval_global_file<V: FromJs<'js>, P: AsRef<Path>>(self, path: P) -> Result<V> {
-        let buffer = fs::read(path.as_ref())?;
+    pub fn eval_global_file<V: FromJs<'js>, P: AsRef<Path>>(
+        self,
+        path: P,
+        buffer: Option<Vec<u8>>,
+    ) -> Result<V> {
+        let buffer = if let Some(buffer) = buffer {
+            buffer
+        } else {
+            fs::read(path.as_ref())?
+        };
         let file_name = CString::new(
             path.as_ref()
-                .file_name()
-                .unwrap()
+                // .file_name()
+                // .unwrap()
                 .to_string_lossy()
                 .into_owned(),
         )?;
         let flag = qjs::JS_EVAL_TYPE_GLOBAL;
         V::from_js(self, unsafe {
-            let val = self.eval_raw(buffer, file_name.as_c_str(), flag as i32)?;
+            let val = self.eval_this_raw(buffer, file_name.as_c_str(), flag as i32)?;
+            Value::from_js_value(self, val)
+        })
+    }
+
+    /// Evaluate a script directly from a file.
+    pub fn eval_global_module<V: FromJs<'js>, P: AsRef<Path>>(
+        self,
+        path: P,
+        buffer: Option<Vec<u8>>,
+    ) -> Result<V> {
+        let buffer = if let Some(buffer) = buffer {
+            buffer
+        } else {
+            fs::read(path.as_ref())?
+        };
+        let file_name = CString::new(
+            path.as_ref()
+                // .file_name()
+                // .unwrap()
+                .to_string_lossy()
+                .into_owned(),
+        )?;
+        let flag = qjs::JS_EVAL_TYPE_MODULE | qjs::JS_EVAL_TYPE_GLOBAL;
+        V::from_js(self, unsafe {
+            let val = self.eval_this_raw(buffer, file_name.as_c_str(), flag as i32)?;
             Value::from_js_value(self, val)
         })
     }
