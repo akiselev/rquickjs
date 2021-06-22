@@ -490,3 +490,14 @@ pub(crate) unsafe fn get_exception<'js>(ctx: Ctx<'js>) -> Error {
     let exception = Value::from_js_value(ctx, exception_val);
     Error::from_js(ctx, exception).unwrap()
 }
+
+pub fn get_error<'js>(ctx: Ctx<'js>) -> Option<Error> {
+    let exception_val = unsafe { qjs::JS_GetException(ctx.ctx) };
+
+    if let Some(x) = unsafe { ctx.get_opaque() }.panic.take() {
+        panic::resume_unwind(x);
+    }
+
+    let exception = unsafe { Value::from_js_value(ctx, exception_val) };
+    Error::from_js(ctx, exception).ok()
+}
