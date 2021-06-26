@@ -1,5 +1,8 @@
 use crate::{handle_exception, qjs, Ctx, Error, Result, StdString, Value};
-use std::{mem, slice, str};
+use std::{
+    ffi::{CStr, CString},
+    mem, slice, str,
+};
 
 /// Rust representation of a javascript string.
 #[derive(Debug, Clone, PartialEq)]
@@ -7,6 +10,17 @@ use std::{mem, slice, str};
 pub struct String<'js>(pub(crate) Value<'js>);
 
 impl<'js> String<'js> {
+    pub fn to_cstring(&self) -> Result<CString> {
+        let ptr = unsafe { qjs::JS_ToCString(self.0.ctx.ctx, self.0.as_js_value()) };
+        if ptr.is_null() {
+            // Might not ever happen but I am not 100% sure
+            // so just incase check it.
+            return Err(Error::Unknown);
+        }
+        let result = unsafe { CString::from_raw(ptr as *mut i8) };
+        Ok(result)
+    }
+
     /// Convert the javascript string to a rust string.
     pub fn to_string(&self) -> Result<StdString> {
         let mut len = mem::MaybeUninit::uninit();
