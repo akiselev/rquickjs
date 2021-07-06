@@ -70,6 +70,9 @@ full = [
 # Almost all features excluding "parallel"
 full-async = ["full", "async-std", "tokio", "smol"]
 
+# Enable backtrace support
+backtrace = ["rquickjs-core/backtrace"]
+
 # Enable support for Either type
 either = ["rquickjs-core/either", "either-rs"]
 

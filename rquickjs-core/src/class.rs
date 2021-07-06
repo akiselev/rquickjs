@@ -273,6 +273,7 @@ where
                 from: "object",
                 to: C::CLASS_NAME,
                 message: None,
+                backtrace: backtrace::Backtrace::new(),
             });
         }
         Ok(ptr)

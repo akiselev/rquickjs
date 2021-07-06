@@ -10,6 +10,10 @@ keywords = ["quickjs", "ecmascript", "javascript", "es6", "es2020"]
 categories = ["api-bindings"]
 repository = "https://github.com/DelSkayn/rquickjs.git"
 
+[dependencies.backtrace]
+version = "0.3.60"
+optional = true
+
 [dependencies.fxhash]
 version = "^0.2"
 optional = true
