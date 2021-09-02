@@ -9,7 +9,7 @@ mod as_func;
 mod ffi;
 mod types;
 
-use args::{FromInput, Input};
+pub use args::{FromInput, Input, InputAccessor};
 pub use as_args::{AsArguments, CallInput, IntoInput};
 pub use as_func::AsFunction;
 use ffi::JsFunction;
