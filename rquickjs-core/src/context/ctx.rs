@@ -232,6 +232,16 @@ impl<'js> Ctx<'js> {
         opaque.map.insert(key, value)
     }
 
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
+    pub fn get_or_insert_typed<K: 'static + TypedMapKey, FUNC: Fn() -> K::Value>(
+        &self,
+        key: K,
+        func: FUNC,
+    ) -> &K::Value {
+        let opaque = unsafe { self.get_opaque() };
+        opaque.map.entry(key).or_insert_with(func)
+    }
+
     /// Get a value from the typedmap using a key
     #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
     pub fn get_typed<'a, K: 'static + TypedMapKey>(&'a self, key: &K) -> Option<&'a K::Value> {
@@ -254,6 +264,12 @@ impl<'js> Ctx<'js> {
     pub fn remove_typed<K: 'static + TypedMapKey>(&self, key: &K) -> Option<K::Value> {
         let opaque = unsafe { self.get_opaque() };
         opaque.map.remove(key)
+    }
+
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
+    pub fn clear_typed<K: 'static + TypedMapKey>(&self) {
+        let opaque = unsafe { self.get_opaque() };
+        opaque.map.clear()
     }
 
     /// Get a value from the typedmap using a key
