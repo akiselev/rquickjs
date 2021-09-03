@@ -320,6 +320,21 @@ impl<'js> Ctx<'js> {
             }
         }
     }
+
+    /// Get a value from the registery.
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "registery")))]
+    pub fn clear_registery(self) -> usize {
+        unsafe {
+            let opaque = self.get_opaque();
+            let mut count = 0;
+            for k in opaque.registery.drain() {
+                let value = Value::from_js_value(self, k.0);
+                drop(value);
+                count += 1;
+            }
+            count
+        }
+    }
 }
 
 mod test {
