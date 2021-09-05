@@ -1,6 +1,7 @@
 mod array;
 mod atom;
 mod convert;
+mod frunk;
 mod function;
 mod module;
 mod object;
