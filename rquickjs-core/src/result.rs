@@ -486,7 +486,10 @@ impl<'js> FromJs<'js> for Error {
                 file: obj.get("fileName").unwrap_or_else(|_| "".into()),
                 line: obj.get("lineNumber").unwrap_or(-1),
                 stack: obj.get("stack").unwrap_or_else(|_| "".into()),
-                rust_stack: obj.get::<_, StdString>("rustStack").ok(),
+                rust_stack: Some(
+                    obj.get::<_, StdString>("rustStack")
+                        .unwrap_or_else(|_| format!("{:?}", Backtrace::new())),
+                ),
             })
         } else {
             Err(Error::new_from_js("object", "error"))
