@@ -48,23 +48,39 @@ package = "either"
 version = "1"
 optional = true
 
-[workspace]
-members = [
-    "sys",
-    "core",
-    "macro",
-    "examples/native-module",
-    "examples/module-loader",
-]
+# [workspace]
+# members = [
+#     "sys",
+#     "core",
+#     "macro",
+#     "examples/native-module",
+#     "examples/module-loader",
+# ]
 
 [features]
 default = ["exports", "classes", "properties"]
 
 # Almost all features excluding "parallel" and support for async runtimes
-full = ["exports", "loader", "allocator", "dyn-load", "either", "indexmap", "registery", "classes", "properties", "macro", "phf"]
+full = [
+    "exports",
+    "loader",
+    "allocator",
+    "dyn-load",
+    "either",
+    "indexmap",
+    "registery",
+    "classes",
+    "properties",
+    "macro",
+    "typedmap",
+    "phf",
+]
 
 # Almost all features excluding "parallel"
 full-async = ["full", "async-std", "tokio", "smol"]
+
+# Enable backtrace support
+backtrace = ["rquickjs-core/backtrace"]
 
 # Enable support for Either type
 either = ["rquickjs-core/either", "either-rs"]
@@ -81,6 +97,9 @@ bindgen = ["rquickjs-core/bindgen"]
 
 # Enable support of parallel execution
 parallel = ["rquickjs-core/parallel"]
+
+# Enable support of typedmap in Ctx
+typedmap = ["rquickjs-core/typedmap"]
 
 # Enable runtime registery
 registery = ["rquickjs-core/registery"]

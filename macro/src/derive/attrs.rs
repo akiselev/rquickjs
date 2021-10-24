@@ -712,10 +712,10 @@ mod test {
         };
 
         rename_crate {
-            #[quickjs(crate = "rquickjs2")]
+            #[quickjs(crate = "rquickjs")]
             struct Data;
         } (out) {
-            assert_eq!(out.crate_.as_ref().unwrap(), "rquickjs2");
+            assert_eq!(out.crate_.as_ref().unwrap(), "rquickjs");
         };
 
         impl_params_without_params {

@@ -3,6 +3,9 @@ use crate::{
     Object, Result, Value,
 };
 
+#[cfg(feature = "typedmap")]
+use typedmap::TypedMapKey;
+
 #[cfg(feature = "futures")]
 use std::future::Future;
 
@@ -55,10 +58,40 @@ impl<'js> Ctx<'js> {
         handle_exception(self, val)
     }
 
+    pub(crate) unsafe fn eval_this_raw<S: Into<Vec<u8>>>(
+        self,
+        source: S,
+        file_name: &CStr,
+        flag: i32,
+    ) -> Result<qjs::JSValue> {
+        let src = source.into();
+        let len = src.len();
+        let src = CString::new(src)?;
+        let val = qjs::JS_EvalThis(
+            self.ctx,
+            (*self.globals()).clone().into_js_value(),
+            src.as_ptr(),
+            len as _,
+            file_name.as_ptr(),
+            flag,
+        );
+        handle_exception(self, val)
+    }
+
     /// Evaluate a script in global context
     pub fn eval<V: FromJs<'js>, S: Into<Vec<u8>>>(self, source: S) -> Result<V> {
         let file_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"eval_script\0") };
         let flag = qjs::JS_EVAL_TYPE_GLOBAL | qjs::JS_EVAL_FLAG_STRICT;
+        V::from_js(self, unsafe {
+            let val = self.eval_raw(source, file_name, flag as i32)?;
+            Value::from_js_value(self, val)
+        })
+    }
+
+    /// Evaluate a script in global context
+    pub fn eval_global<V: FromJs<'js>, S: Into<Vec<u8>>>(self, source: S) -> Result<V> {
+        let file_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"eval_script\0") };
+        let flag = qjs::JS_EVAL_TYPE_MODULE;
         V::from_js(self, unsafe {
             let val = self.eval_raw(source, file_name, flag as i32)?;
             Value::from_js_value(self, val)
@@ -78,6 +111,56 @@ impl<'js> Ctx<'js> {
         let flag = qjs::JS_EVAL_TYPE_GLOBAL | qjs::JS_EVAL_FLAG_STRICT;
         V::from_js(self, unsafe {
             let val = self.eval_raw(buffer, file_name.as_c_str(), flag as i32)?;
+            Value::from_js_value(self, val)
+        })
+    }
+
+    /// Evaluate a script directly from a file.
+    pub fn eval_global_file<V: FromJs<'js>, P: AsRef<Path>>(
+        self,
+        path: P,
+        buffer: Option<Vec<u8>>,
+    ) -> Result<V> {
+        let buffer = if let Some(buffer) = buffer {
+            buffer
+        } else {
+            fs::read(path.as_ref())?
+        };
+        let file_name = CString::new(
+            path.as_ref()
+                // .file_name()
+                // .unwrap()
+                .to_string_lossy()
+                .into_owned(),
+        )?;
+        let flag = qjs::JS_EVAL_TYPE_GLOBAL;
+        V::from_js(self, unsafe {
+            let val = self.eval_this_raw(buffer, file_name.as_c_str(), flag as i32)?;
+            Value::from_js_value(self, val)
+        })
+    }
+
+    /// Evaluate a script directly from a file.
+    pub fn eval_global_module<V: FromJs<'js>, P: AsRef<Path>>(
+        self,
+        path: P,
+        buffer: Option<Vec<u8>>,
+    ) -> Result<V> {
+        let buffer = if let Some(buffer) = buffer {
+            buffer
+        } else {
+            fs::read(path.as_ref())?
+        };
+        let file_name = CString::new(
+            path.as_ref()
+                // .file_name()
+                // .unwrap()
+                .to_string_lossy()
+                .into_owned(),
+        )?;
+        let flag = qjs::JS_EVAL_TYPE_MODULE | qjs::JS_EVAL_TYPE_GLOBAL;
+        V::from_js(self, unsafe {
+            let val = self.eval_this_raw(buffer, file_name.as_c_str(), flag as i32)?;
             Value::from_js_value(self, val)
         })
     }
@@ -136,6 +219,67 @@ impl<'js> Ctx<'js> {
     }
 }
 
+#[cfg(feature = "typedmap")]
+impl<'js> Ctx<'js> {
+    /// Store a value in the typedmap using a key
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
+    pub fn insert_typed<K: 'static + TypedMapKey>(
+        &self,
+        key: K,
+        value: K::Value,
+    ) -> Option<K::Value> {
+        let opaque = unsafe { self.get_opaque() };
+        opaque.map.insert(key, value)
+    }
+
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
+    pub fn get_or_insert_typed<K: 'static + TypedMapKey, FUNC: Fn() -> K::Value>(
+        &self,
+        key: K,
+        func: FUNC,
+    ) -> &K::Value {
+        let opaque = unsafe { self.get_opaque() };
+        opaque.map.entry(key).or_insert_with(func)
+    }
+
+    /// Get a value from the typedmap using a key
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
+    pub fn get_typed<'a, K: 'static + TypedMapKey>(&'a self, key: &K) -> Option<&'a K::Value> {
+        let opaque = unsafe { self.get_opaque() };
+        opaque.map.get(key)
+    }
+
+    /// Get a mut value from the typedmap using a key
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
+    pub fn get_typed_mut<'a, K: 'static + TypedMapKey>(
+        &'a self,
+        key: &K,
+    ) -> Option<&'a mut K::Value> {
+        let opaque = unsafe { self.get_opaque() };
+        opaque.map.get_mut(key)
+    }
+
+    /// Get a value from the typedmap using a key
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
+    pub fn remove_typed<K: 'static + TypedMapKey>(&self, key: &K) -> Option<K::Value> {
+        let opaque = unsafe { self.get_opaque() };
+        opaque.map.remove(key)
+    }
+
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
+    pub fn clear_typed<K: 'static + TypedMapKey>(&self) {
+        let opaque = unsafe { self.get_opaque() };
+        opaque.map.clear()
+    }
+
+    /// Get a value from the typedmap using a key
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "typedmap")))]
+    pub fn contains_typed_key<K: 'static + TypedMapKey>(&self, key: &K) -> bool {
+        let opaque = unsafe { self.get_opaque() };
+        opaque.map.contains_key(key)
+    }
+}
+
 #[cfg(feature = "registery")]
 impl<'js> Ctx<'js> {
     /// Store a value in the registery so references to it can be kept outside the scope of context use.
@@ -174,6 +318,21 @@ impl<'js> Ctx<'js> {
             } else {
                 None
             }
+        }
+    }
+
+    /// Get a value from the registery.
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "registery")))]
+    pub fn clear_registery(self) -> usize {
+        unsafe {
+            let opaque = self.get_opaque();
+            let mut count = 0;
+            for k in opaque.registery.drain() {
+                let value = Value::from_js_value(self, k.0);
+                drop(value);
+                count += 1;
+            }
+            count
         }
     }
 }

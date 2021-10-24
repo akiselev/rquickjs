@@ -1,6 +1,6 @@
 use crate::{
     get_exception, handle_exception, qjs, Array, Atom, Ctx, Error, FromAtom, FromIteratorJs,
-    FromJs, Function, IntoAtom, IntoJs, Result, Value,
+    FromJs, Function, IntoAtom, IntoJs, RefsMarker, Result, Value,
 };
 use std::{
     iter::{DoubleEndedIterator, ExactSizeIterator, FusedIterator, IntoIterator, Iterator},
@@ -241,6 +241,13 @@ impl<'js> Object<'js> {
             Some(Array(self.0))
         } else {
             None
+        }
+    }
+
+    pub fn mark(&self, marker: &RefsMarker) {
+        let value = self.0.value;
+        if unsafe { qjs::JS_VALUE_HAS_REF_COUNT(value) } {
+            unsafe { qjs::JS_MarkValue(marker.rt, value, marker.mark_func) };
         }
     }
 }
