@@ -26,12 +26,12 @@ use std::{
 /// Context in use, passed to [`Context::with`].
 #[derive(Clone, Copy, Debug)]
 pub struct Ctx<'js> {
-    pub(crate) ctx: *mut qjs::JSContext,
+    pub ctx: *mut qjs::JSContext,
     marker: Invariant<'js>,
 }
 
 impl<'js> Ctx<'js> {
-    pub(crate) fn from_ptr(ctx: *mut qjs::JSContext) -> Self {
+    pub fn from_ptr(ctx: *mut qjs::JSContext) -> Self {
         Ctx {
             ctx,
             marker: PhantomData,
