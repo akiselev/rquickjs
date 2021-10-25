@@ -388,6 +388,9 @@ impl Display for Error {
                         message.fmt(f)?;
                     }
                 }
+                #[cfg(feature = "backtrace")]
+                "\n---RUST---\n".fmt(f)?;
+                format!("{:?}", backtrace).fmt(f)?;
             }
             IntoJs {
                 from,

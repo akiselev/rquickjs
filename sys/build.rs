@@ -49,7 +49,9 @@ fn main() {
         "quickjs-atom.h",
         "quickjs-opcode.h",
         "quickjs.h",
+        "quickjs-debugger.h",
         "cutils.h",
+        "config.h",
     ];
 
     let source_files = [
@@ -57,13 +59,16 @@ fn main() {
         "libunicode.c",
         "cutils.c",
         "quickjs.c",
+        "quickjs-debugger.c",
+        "quickjs-debugger-transport-unix.c",
         "libbf.c",
     ];
 
+    // Permanently added in forked repo (combined with vscode)
     let mut patch_files = vec![
-        "check_stack_overflow.patch",
-        "infinity_handling.patch",
-        "atomic_new_class_id.patch",
+        // "check_stack_overflow.patch",
+        // "infinity_handling.patch",
+        // "atomic_new_class_id.patch",
     ];
 
     let mut defines = vec![
@@ -79,7 +84,8 @@ fn main() {
     }
 
     if env::var("CARGO_FEATURE_EXPORTS").is_ok() {
-        patch_files.push("read_module_exports.patch");
+        // Permanently added in forked repo (combined with vscode)
+        // patch_files.push("read_module_exports.patch");
         defines.push(("CONFIG_MODULE_EXPORTS".into(), None));
     }
 
@@ -90,7 +96,9 @@ fn main() {
     }
 
     for file in source_files.iter().chain(header_files.iter()) {
-        fs::copy(src_dir.join(file), out_dir.join(file)).expect("Unable to copy source");
+        let input = src_dir.join(file);
+        println!("cargo:rerun-if-changed={}", input.display());
+        fs::copy(input, out_dir.join(file)).expect("Unable to copy source");
     }
 
     // applying patches
