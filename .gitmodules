@@ -1,1 +1,4 @@
 
+[submodule "sys/quickjs"]
+	path = sys/quickjs
+	url = git@github.com:akiselev/quickjs
