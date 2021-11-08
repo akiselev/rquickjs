@@ -102,23 +102,23 @@ impl<'js> PartialEq for Value<'js> {
 impl<'js> Value<'js> {
     // unsafe becuase the value must belong the context and the lifetime must be constrained by its lifetime
     #[inline]
-    pub(crate) unsafe fn from_js_value(ctx: Ctx<'js>, value: qjs::JSValue) -> Self {
+    pub unsafe fn from_js_value(ctx: Ctx<'js>, value: qjs::JSValue) -> Self {
         Self { ctx, value }
     }
 
     #[inline]
-    pub(crate) unsafe fn from_js_value_const(ctx: Ctx<'js>, value: qjs::JSValueConst) -> Self {
+    pub unsafe fn from_js_value_const(ctx: Ctx<'js>, value: qjs::JSValueConst) -> Self {
         let value = qjs::JS_DupValue(value);
         Self { ctx, value }
     }
 
     #[inline]
-    pub(crate) fn as_js_value(&self) -> qjs::JSValueConst {
+    pub fn as_js_value(&self) -> qjs::JSValueConst {
         self.value
     }
 
     #[inline]
-    pub(crate) fn into_js_value(self) -> qjs::JSValue {
+    pub fn into_js_value(self) -> qjs::JSValue {
         let value = self.value;
         mem::forget(self);
         value
