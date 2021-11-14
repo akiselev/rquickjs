@@ -260,6 +260,18 @@ impl<'js> Value<'js> {
 
     /// Check if the value is a bool
     #[inline]
+    pub fn is_undefined(&self) -> bool {
+        qjs::JS_TAG_UNDEFINED == unsafe { qjs::JS_VALUE_GET_TAG(self.value) }
+    }
+
+    /// Check if the value is a bool
+    #[inline]
+    pub fn is_null(&self) -> bool {
+        qjs::JS_TAG_NULL == unsafe { qjs::JS_VALUE_GET_TAG(self.value) }
+    }
+
+    /// Check if the value is a bool
+    #[inline]
     pub fn is_bool(&self) -> bool {
         qjs::JS_TAG_BOOL == unsafe { qjs::JS_VALUE_GET_TAG(self.value) }
     }
