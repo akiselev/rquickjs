@@ -9,7 +9,7 @@ pub struct Input<'js> {
 
 impl<'js> Input<'js> {
     #[inline]
-    pub fn new_raw(
+    pub unsafe fn new_raw(
         ctx: *mut qjs::JSContext,
         this: qjs::JSValue,
         argc: qjs::c_int,
