@@ -5,6 +5,7 @@ use std::{any::Any, ffi::CString, mem};
 mod async_runtime;
 #[cfg(feature = "futures")]
 pub use async_runtime::*;
+use parking_lot::ReentrantMutex;
 #[cfg(feature = "futures")]
 mod async_executor;
 #[cfg(feature = "futures")]
@@ -23,9 +24,11 @@ use crate::{allocator::AllocatorHolder, Allocator};
 #[cfg(feature = "loader")]
 use crate::{loader::LoaderHolder, Loader, Resolver};
 
+type Mutex<T> = ReentrantMutex<T>;
+
 #[derive(Clone)]
 #[repr(transparent)]
-pub struct WeakRuntime(Weak<Mut<Inner>>);
+pub struct WeakRuntime(Weak<Mutex<Inner>>);
 
 impl WeakRuntime {
     pub fn try_ref(&self) -> Option<Runtime> {
@@ -74,15 +77,15 @@ pub(crate) struct Inner {
 
     // To keep rt info alive for the entire duration of the lifetime of rt
     #[allow(dead_code)]
-    info: Option<CString>,
+    info: Mut<Option<CString>>,
 
     #[cfg(feature = "allocator")]
     #[allow(dead_code)]
-    allocator: Option<AllocatorHolder>,
+    allocator: Mut<Option<AllocatorHolder>>,
 
     #[cfg(feature = "loader")]
     #[allow(dead_code)]
-    loader: Option<LoaderHolder>,
+    loader: Mut<Option<LoaderHolder>>,
 }
 
 impl Drop for Inner {
@@ -110,7 +113,8 @@ impl Inner {
     }
 
     #[cfg(feature = "futures")]
-    pub(crate) unsafe fn get_opaque_mut(&mut self) -> &mut Opaque {
+    #[allow(clippy::mut_from_ref)]
+    pub(crate) unsafe fn get_opaque_mut(&self) -> &mut Opaque {
         &mut *(qjs::JS_GetRuntimeOpaque(self.rt) as *mut _)
     }
 
@@ -118,7 +122,7 @@ impl Inner {
         0 != unsafe { qjs::JS_IsJobPending(self.rt) }
     }
 
-    pub(crate) fn execute_pending_job(&mut self) -> Result<bool> {
+    pub(crate) fn execute_pending_job(&self) -> Result<bool> {
         let mut ctx_ptr = mem::MaybeUninit::<*mut qjs::JSContext>::uninit();
         self.update_stack_top();
         let result = unsafe { qjs::JS_ExecutePendingJob(self.rt, ctx_ptr.as_mut_ptr()) };
@@ -141,7 +145,7 @@ impl Inner {
 #[derive(Clone)]
 #[repr(transparent)]
 pub struct Runtime {
-    pub(crate) inner: Ref<Mut<Inner>>,
+    pub(crate) inner: Ref<Mutex<Inner>>,
 }
 
 impl Runtime {
@@ -187,6 +191,10 @@ impl Runtime {
         Function::init_raw(rt);
     }
 
+    pub unsafe fn ptr(&self) -> *mut qjs::JSRuntime {
+        self.inner.lock().rt
+    }
+
     #[inline]
     fn new_raw(
         rt: *mut qjs::JSRuntime,
@@ -199,13 +207,13 @@ impl Runtime {
         unsafe { Self::init_raw(rt) };
 
         let runtime = Runtime {
-            inner: Ref::new(Mut::new(Inner {
+            inner: Ref::new(Mutex::new(Inner {
                 rt,
-                info: None,
+                info: Mut::new(None),
                 #[cfg(feature = "allocator")]
-                allocator,
+                allocator: Mut::new(allocator),
                 #[cfg(feature = "loader")]
-                loader: None,
+                loader: Mut::new(None),
             })),
         };
 
@@ -228,18 +236,18 @@ impl Runtime {
         R: Resolver + 'static,
         L: Loader + 'static,
     {
-        let mut guard = self.inner.lock();
+        let guard = self.inner.lock();
         let loader = LoaderHolder::new(resolver, loader);
         loader.set_to_runtime(guard.rt);
-        guard.loader = Some(loader);
+        *guard.loader.lock() = Some(loader);
     }
 
     /// Set the info of the runtime
     pub fn set_info<S: Into<Vec<u8>>>(&self, info: S) -> Result<()> {
-        let mut guard = self.inner.lock();
+        let guard = self.inner.lock();
         let string = CString::new(info)?;
         unsafe { qjs::JS_SetRuntimeInfo(guard.rt, string.as_ptr()) };
-        guard.info = Some(string);
+        *guard.info.lock() = Some(string);
         Ok(())
     }
 
